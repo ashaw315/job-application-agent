@@ -15,16 +15,26 @@ const PORT = 3456;
 const server = createServer(async (req, res) => {
   console.log(`${req.method} ${req.url}`);
 
-  // Route to simple form
-  if (req.url === '/jobs/simple-form' || req.url === '/') {
+  const routes: Record<string, string> = {
+    '/': 'simple-form.html',
+    '/jobs/simple-form': 'simple-form.html',
+    '/jobs/complete-form': 'complete-form.html',
+    '/jobs/no-cover-letter': 'no-cover-letter-form.html',
+    '/jobs/ambiguous-form': 'ambiguous-form.html',
+    '/jobs/no-resume': 'no-resume-form.html',
+  };
+
+  const filename = routes[req.url || ''];
+
+  if (filename) {
     try {
-      const htmlPath = join(__dirname, 'simple-form.html');
+      const htmlPath = join(__dirname, filename);
       const html = await readFile(htmlPath, 'utf-8');
 
       res.writeHead(200, { 'Content-Type': 'text/html' });
       res.end(html);
     } catch (error) {
-      console.error('Error serving simple-form.html:', error);
+      console.error(`Error serving ${filename}:`, error);
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('Internal Server Error');
     }

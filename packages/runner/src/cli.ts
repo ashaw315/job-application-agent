@@ -93,7 +93,13 @@ Examples:
       console.log(`   Stopped: ${report.stoppedReason}`);
     }
 
-    process.exit(report.status === 'success' ? 0 : 1);
+    // Output structured JSON report to stdout (for machine parsing)
+    console.log();
+    console.log('=== RUNNER_REPORT_JSON ===');
+    console.log(JSON.stringify(report, null, 2));
+    console.log('=== END_RUNNER_REPORT_JSON ===');
+
+    process.exit(report.status === 'success' || report.status === 'stopped_before_submit' ? 0 : 1);
   } catch (error) {
     console.error('❌ Fatal error:', error);
     process.exit(1);
