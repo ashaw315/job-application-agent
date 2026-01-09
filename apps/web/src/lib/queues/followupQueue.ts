@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { defaultQueueOptions, QUEUE_NAMES, getRedisConnection } from './config';
+import { getDefaultQueueOptions, QUEUE_NAMES } from './config';
 import { FollowUpJobData, FollowUpJobResult } from './types';
 import { isQueueModeEnabled } from '../env';
 import { logger } from '../logger';
@@ -19,7 +19,7 @@ export function getFollowupQueue(): Queue<FollowUpJobData, FollowUpJobResult> {
   if (!followupQueueInstance) {
     followupQueueInstance = new Queue<FollowUpJobData, FollowUpJobResult>(
       QUEUE_NAMES.FOLLOWUP,
-      defaultQueueOptions as any
+      getDefaultQueueOptions() as any
     );
 
     logger.info({ queue: QUEUE_NAMES.FOLLOWUP }, 'Follow-up queue initialized');

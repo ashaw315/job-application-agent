@@ -37,47 +37,55 @@ export function getRedisConnection(): IORedis {
 
 /**
  * Get connection options for BullMQ
+ * Called lazily when queue/worker is actually created
  */
 function getConnectionOptions() {
+  const connection = getRedisConnection();
   return {
-    host: getRedisConnection().options.host,
-    port: getRedisConnection().options.port,
+    host: connection.options.host,
+    port: connection.options.port,
   };
 }
 
 /**
- * Default queue options
+ * Get default queue options
+ * Lazy function to avoid env validation at module import time
  */
-export const defaultQueueOptions: Partial<QueueOptions> = {
-  connection: getConnectionOptions(),
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000, // Start with 2s, then 4s, then 8s
+export function getDefaultQueueOptions(): Partial<QueueOptions> {
+  return {
+    connection: getConnectionOptions(),
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000, // Start with 2s, then 4s, then 8s
+      },
+      removeOnComplete: {
+        count: 100, // Keep last 100 completed jobs
+        age: 24 * 3600, // Keep for 24 hours
+      },
+      removeOnFail: {
+        count: 500, // Keep last 500 failed jobs
+        age: 7 * 24 * 3600, // Keep for 7 days
+      },
     },
-    removeOnComplete: {
-      count: 100, // Keep last 100 completed jobs
-      age: 24 * 3600, // Keep for 24 hours
-    },
-    removeOnFail: {
-      count: 500, // Keep last 500 failed jobs
-      age: 7 * 24 * 3600, // Keep for 7 days
-    },
-  },
-};
+  };
+}
 
 /**
- * Default worker options
+ * Get default worker options
+ * Lazy function to avoid env validation at module import time
  */
-export const defaultWorkerOptions: Partial<WorkerOptions> = {
-  connection: getConnectionOptions(),
-  concurrency: 1, // Process one job at a time per worker (safe default)
-  limiter: {
-    max: 10, // Max 10 jobs
-    duration: 1000, // Per second
-  },
-};
+export function getDefaultWorkerOptions(): Partial<WorkerOptions> {
+  return {
+    connection: getConnectionOptions(),
+    concurrency: 1, // Process one job at a time per worker (safe default)
+    limiter: {
+      max: 10, // Max 10 jobs
+      duration: 1000, // Per second
+    },
+  };
+}
 
 /**
  * Queue names

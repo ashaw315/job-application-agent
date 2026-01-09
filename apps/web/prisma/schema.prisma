@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,8 +16,8 @@ model UserProfile {
   name      String
   email     String
   phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("user_profiles")
 }
@@ -26,10 +26,10 @@ model UserProfile {
 model JobSource {
   id         String   @id @default(uuid())
   url        String
-  atsType    String // "greenhouse" | "lever" | "generic"
-  scrapedAt  DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  atsType    String @map("ats_type") // "greenhouse" | "lever" | "generic"
+  scrapedAt  DateTime @default(now()) @map("scraped_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   jobPostings JobPosting[]
 
@@ -40,23 +40,23 @@ model JobSource {
 // Main job posting entity
 model JobPosting {
   id          String   @id @default(uuid())
-  dedupeKey   String   @unique // For deduplication
+  dedupeKey   String   @unique @map("dedupe_key") // For deduplication
   title       String
   company     String
   location    String?
-  salaryMin   Int?
-  salaryMax   Int?
+  salaryMin   Int? @map("salary_min")
+  salaryMax   Int? @map("salary_max")
   description String
   status      String   @default("new") // "new" | "needs_attention" | "in_review" | "applied" | "rejected" | "archived"
 
-  sourceKey   String?  // ATS-specific job ID (e.g., greenhouse job ID)
-  applyUrl    String?  // Direct application URL
+  sourceKey   String? @map("source_key") // ATS-specific job ID (e.g., greenhouse job ID)
+  applyUrl    String? @map("apply_url") // Direct application URL
 
-  jobSourceId String
+  jobSourceId String @map("job_source_id")
   jobSource   JobSource @relation(fields: [jobSourceId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   fitScore              FitScore?
   materialPackets       MaterialPacket[]
@@ -73,14 +73,14 @@ model JobPosting {
 // 1:1 fit score for each job posting
 model FitScore {
   id            String   @id @default(uuid())
-  jobPostingId  String   @unique
+  jobPostingId  String   @unique @map("job_posting_id")
   jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   score         Float // 0-100
   reasoning     String
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("fit_scores")
 }
@@ -91,8 +91,8 @@ model KbBullet {
   text      String
   tags      String // JSON array stored as string
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("kb_bullets")
 }
@@ -104,8 +104,8 @@ model KbProject {
   description String
   technologies String // JSON array stored as string
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("kb_projects")
 }
@@ -120,8 +120,8 @@ model KbStarStory {
   result      String
   tags        String // JSON array stored as string
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("kb_star_stories")
 }
@@ -129,17 +129,17 @@ model KbStarStory {
 // Generated application materials packet
 model MaterialPacket {
   id                String   @id @default(uuid())
-  jobPostingId      String
+  jobPostingId      String @map("job_posting_id")
   jobPosting        JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
-  resumeVariantText String
-  coverLetterText   String?
-  customAnswers     String? // JSON stored as string
+  resumeVariantText String @map("resume_variant_text")
+  coverLetterText   String? @map("cover_letter_text")
+  customAnswers     String? @map("custom_answers") // JSON stored as string
   metadata          String? // JSON stored as string (selectedKbBulletIds, jobKeywords, etc)
 
-  generatedAt       DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  generatedAt       DateTime @default(now()) @map("generated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   versions          MaterialVersion[]
 
@@ -150,7 +150,7 @@ model MaterialPacket {
 // Version history for material packets
 model MaterialVersion {
   id                String   @id @default(uuid())
-  materialPacketId  String
+  materialPacketId  String @map("material_packet_id")
   materialPacket    MaterialPacket @relation(fields: [materialPacketId], references: [id], onDelete: Cascade)
 
   version           Int
@@ -159,11 +159,11 @@ model MaterialVersion {
   content           String   // JSON stored as string
 
   // Optional reference to the version this edit is based on (for edited versions)
-  diffBaseVersionId String?
+  diffBaseVersionId String? @map("diff_base_version_id")
   diffBaseVersion   MaterialVersion? @relation("EditBase", fields: [diffBaseVersionId], references: [id], onDelete: SetNull)
   edits             MaterialVersion[] @relation("EditBase")
 
-  createdAt         DateTime @default(now())
+  createdAt         DateTime @default(now()) @map("created_at")
 
   @@unique([materialPacketId, version])
   @@index([materialPacketId])
@@ -176,15 +176,15 @@ model MaterialVersion {
 // Status change events for job postings
 model StatusEvent {
   id            String   @id @default(uuid())
-  jobPostingId  String
+  jobPostingId  String @map("job_posting_id")
   jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
-  fromStatus    String?
-  toStatus      String
+  fromStatus    String? @map("from_status")
+  toStatus      String @map("to_status")
   actor         String?  // "user" | "runner" | "system"
   notes         String?
 
-  createdAt     DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([jobPostingId])
   @@index([createdAt])
@@ -194,14 +194,14 @@ model StatusEvent {
 // Follow-up suggestions
 model FollowUpSuggestion {
   id            String   @id @default(uuid())
-  jobPostingId  String
+  jobPostingId  String @map("job_posting_id")
   jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   text          String
-  suggestedAt   DateTime @default(now())
+  suggestedAt   DateTime @default(now()) @map("suggested_at")
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   emailDrafts   FollowUpEmailDraft[]
 
@@ -212,14 +212,14 @@ model FollowUpSuggestion {
 // Follow-up email drafts
 model FollowUpEmailDraft {
   id                    String   @id @default(uuid())
-  followUpSuggestionId  String
+  followUpSuggestionId  String @map("follow_up_suggestion_id")
   followUpSuggestion    FollowUpSuggestion @relation(fields: [followUpSuggestionId], references: [id], onDelete: Cascade)
 
   subject               String
   body                  String
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@index([followUpSuggestionId])
   @@map("follow_up_email_drafts")
@@ -228,19 +228,19 @@ model FollowUpEmailDraft {
 // Runner automation execution records
 model RunnerRun {
   id            String   @id @default(uuid())
-  jobPostingId  String
+  jobPostingId  String @map("job_posting_id")
   jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   status        String   // "success" | "stopped_before_submit" | "failed" | "critical_error"
   errors        String   @default("[]") // JSON array of error messages
   warnings      String   @default("[]") // JSON array of warning messages
-  stoppedReason String?
-  appliedAt     DateTime?
+  stoppedReason String? @map("stopped_reason")
+  appliedAt     DateTime? @map("applied_at")
 
-  startedAt     DateTime @default(now())
-  completedAt   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  startedAt     DateTime @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   artifacts     RunnerArtifact[]
 
@@ -253,15 +253,15 @@ model RunnerRun {
 // Artifacts produced by runner (screenshots, HTML, etc)
 model RunnerArtifact {
   id            String   @id @default(uuid())
-  runnerRunId   String
+  runnerRunId   String @map("runner_run_id")
   runnerRun     RunnerRun @relation(fields: [runnerRunId], references: [id], onDelete: Cascade)
 
-  artifactType  String   // "screenshot" | "html" | "pdf" | "json"
-  filePath      String?
+  artifactType  String @map("artifact_type") // "screenshot" | "html" | "pdf" | "json"
+  filePath      String? @map("file_path")
   content       String?
   description   String?
 
-  createdAt     DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([runnerRunId])
   @@index([artifactType])

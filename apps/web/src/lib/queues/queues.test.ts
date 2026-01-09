@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { ScoreJobData, DraftJobData, ScoreJobResult, DraftJobResult } from './types';
-import { extractKeywords, selectRelevantBullets } from '@job-application-agent/shared';
 import { generateCoverLetter, generateResumeVariant } from '../draft/service';
 import { LlmClient, LlmGenerateTextInput, LlmGenerateTextOutput } from '../llm';
 
@@ -78,11 +77,11 @@ describeWithRedis('Queue Idempotency and Retry', () => {
 
     // Create queues
     scoreQueue = new Queue<ScoreJobData, ScoreJobResult>('test-score-queue', {
-      connection: redis,
+      connection: redis as any, // Type assertion to handle ioredis version mismatch
     });
 
     draftQueue = new Queue<DraftJobData, DraftJobResult>('test-draft-queue', {
-      connection: redis,
+      connection: redis as any, // Type assertion to handle ioredis version mismatch
     });
 
     // Setup mock LLM
@@ -123,7 +122,7 @@ describeWithRedis('Queue Idempotency and Retry', () => {
           score,
         };
       },
-      { connection: redis }
+      { connection: redis as any } // Type assertion to handle ioredis version mismatch
     );
 
     draftWorker = new Worker<DraftJobData, DraftJobResult>(
@@ -177,7 +176,7 @@ describeWithRedis('Queue Idempotency and Retry', () => {
           resumeVersionId: resumeResult.materialVersionId,
         };
       },
-      { connection: redis }
+      { connection: redis as any } // Type assertion to handle ioredis version mismatch
     );
 
     // Ensure user profile exists for drafting tests

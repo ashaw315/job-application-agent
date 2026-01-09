@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { defaultQueueOptions, QUEUE_NAMES, getRedisConnection } from './config';
+import { getDefaultQueueOptions, QUEUE_NAMES } from './config';
 import { ScoreJobData, ScoreJobResult } from './types';
 import { isQueueModeEnabled } from '../env';
 import { logger } from '../logger';
@@ -18,7 +18,7 @@ export function getScoreQueue(): Queue<ScoreJobData, ScoreJobResult> {
   if (!scoreQueueInstance) {
     scoreQueueInstance = new Queue<ScoreJobData, ScoreJobResult>(
       QUEUE_NAMES.SCORE,
-      defaultQueueOptions as any
+      getDefaultQueueOptions() as any
     );
 
     logger.info({ queue: QUEUE_NAMES.SCORE }, 'Score queue initialized');

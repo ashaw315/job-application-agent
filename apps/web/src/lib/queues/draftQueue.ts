@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import { defaultQueueOptions, QUEUE_NAMES, getRedisConnection } from './config';
+import { getDefaultQueueOptions, QUEUE_NAMES } from './config';
 import { DraftJobData, DraftJobResult } from './types';
 import { isQueueModeEnabled } from '../env';
 import { logger } from '../logger';
@@ -18,7 +18,7 @@ export function getDraftQueue(): Queue<DraftJobData, DraftJobResult> {
   if (!draftQueueInstance) {
     draftQueueInstance = new Queue<DraftJobData, DraftJobResult>(
       QUEUE_NAMES.DRAFT,
-      defaultQueueOptions as any
+      getDefaultQueueOptions() as any
     );
 
     logger.info({ queue: QUEUE_NAMES.DRAFT }, 'Draft queue initialized');

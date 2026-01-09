@@ -1,14 +1,62 @@
 [
   {
     "text": "Led development of microservices architecture handling 50K+ requests/day, reducing API response time by 40% through Redis caching and database query optimization",
-    "tags": ["backend", "performance", "architecture", "redis", "optimization"]
+    "tags": ["backend", "performance", "architecture", "redis", "optimization", "microservices"]
   },
   {
     "text": "Built and deployed React-based dashboard with real-time analytics, improving user engagement by 65% and reducing customer support tickets by 30%",
-    "tags": ["frontend", "react", "analytics", "ui/ux", "impact"]
+    "tags": ["frontend", "react", "analytics", "ui/ux", "impact", "dashboard"]
   },
   {
     "text": "Implemented CI/CD pipeline using GitHub Actions and Docker, reducing deployment time from 2 hours to 15 minutes and achieving 99.9% uptime",
-    "tags": ["devops", "ci/cd", "docker", "automation", "reliability"]
+    "tags": ["devops", "ci/cd", "docker", "automation", "reliability", "github-actions"]
+  },
+  {
+    "text": "Architected and scaled PostgreSQL database cluster supporting 10M+ daily transactions with read replicas, connection pooling, and automated failover",
+    "tags": ["database", "postgres", "scalability", "architecture", "high-availability"]
+  },
+  {
+    "text": "Built event-driven data pipeline using Kafka and Spark, processing 500GB+ daily logs with sub-second latency for real-time fraud detection",
+    "tags": ["data-engineering", "kafka", "spark", "streaming", "real-time", "big-data"]
+  },
+  {
+    "text": "Developed comprehensive test suite with 95% coverage using Jest and React Testing Library, reducing production bugs by 60% and improving deployment confidence",
+    "tags": ["testing", "jest", "quality", "automation", "react-testing-library", "frontend"]
+  },
+  {
+    "text": "Led migration from Rails monolith to Node.js microservices, improving development velocity by 3x and reducing cloud costs by $120K/year",
+    "tags": ["migration", "rails", "nodejs", "microservices", "leadership", "cost-optimization"]
+  },
+  {
+    "text": "Designed and implemented GraphQL API serving 20+ client applications, reducing API calls by 70% and improving mobile app performance",
+    "tags": ["backend", "graphql", "api", "performance", "mobile", "architecture"]
+  },
+  {
+    "text": "Built real-time collaboration features using WebSockets and Redis Pub/Sub, enabling 10K+ concurrent users with 99.95% uptime",
+    "tags": ["backend", "websockets", "real-time", "redis", "scalability", "concurrency"]
+  },
+  {
+    "text": "Established TypeScript coding standards and migration path, improving type safety across 200K+ lines of code and reducing runtime errors by 45%",
+    "tags": ["typescript", "code-quality", "migration", "standards", "frontend", "backend"]
+  },
+  {
+    "text": "Deployed and managed Kubernetes clusters on AWS EKS, handling auto-scaling for 100+ microservices with zero-downtime deployments",
+    "tags": ["kubernetes", "aws", "devops", "infrastructure", "scalability", "cloud"]
+  },
+  {
+    "text": "Implemented OAuth2 and JWT-based authentication system securing 500K+ user accounts with multi-factor authentication and session management",
+    "tags": ["security", "authentication", "oauth", "jwt", "backend", "identity"]
+  },
+  {
+    "text": "Built serverless data processing pipeline using AWS Lambda and Step Functions, reducing infrastructure costs by 60% while improving reliability",
+    "tags": ["aws", "lambda", "serverless", "cost-optimization", "architecture", "cloud"]
+  },
+  {
+    "text": "Mentored team of 5 junior engineers through code reviews and pair programming, improving code quality metrics by 40% and reducing onboarding time by 50%",
+    "tags": ["mentorship", "leadership", "code-review", "team", "communication"]
+  },
+  {
+    "text": "Optimized React application bundle size by 65% through code-splitting, lazy loading, and tree-shaking, improving Time to Interactive from 8s to 2.5s",
+    "tags": ["frontend", "react", "performance", "optimization", "webpack", "web-vitals"]
   }
 ]

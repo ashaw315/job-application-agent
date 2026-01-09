@@ -4,8 +4,24 @@ dist/
 build/
 .turbo/
 *.log
-.env
-.env*.local
 .DS_Store
 coverage/
 .vitest/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+apps/web/.env
+apps/web/.env.local
+apps/web/.env.*.local
+packages/runner/.env
+packages/runner/.env.local
+packages/runner/.env.*.local
+
+# Runner artifacts (screenshots, traces, HTML snapshots)
+artifacts/
+**/artifacts/
+*.trace.zip
+*.png
+*.html

@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
-import { defaultWorkerOptions, QUEUE_NAMES, closeRedisConnections } from '../lib/queues/config';
+import { getDefaultWorkerOptions, QUEUE_NAMES, closeRedisConnections } from '../lib/queues/config';
 import {
   ScoreJobData,
   ScoreJobResult,
@@ -102,7 +102,7 @@ function createScoreWorker() {
         throw error;
       }
     },
-    defaultWorkerOptions as any
+    getDefaultWorkerOptions() as any
   );
 }
 
@@ -295,7 +295,7 @@ function createDraftWorker() {
         throw error;
       }
     },
-    defaultWorkerOptions as any
+    getDefaultWorkerOptions() as any
   );
 }
 
@@ -450,7 +450,7 @@ function createFollowupWorker() {
         throw error;
       }
     },
-    defaultWorkerOptions as any
+    getDefaultWorkerOptions() as any
   );
 }
 

@@ -53,14 +53,37 @@ export function validateEnv(): Env {
 }
 
 /**
- * Validated environment variables
- * Use this instead of process.env for type safety
+ * Cached validated environment (lazy loaded)
  */
-export const env = validateEnv();
+let _env: Env | undefined;
+
+/**
+ * Get validated environment variables (validates on first access)
+ * Use this in code that requires strict validation
+ */
+export function getEnv(): Env {
+  if (!_env) {
+    _env = validateEnv();
+  }
+  return _env;
+}
+
+/**
+ * Validated environment variables (lazy proxy)
+ * Use this instead of process.env for type safety
+ *
+ * NOTE: Validation runs on first property access, not at module import time.
+ * This allows routes like /api/health to load without requiring all env vars.
+ */
+export const env = new Proxy({} as Env, {
+  get(_, prop) {
+    return getEnv()[prop as keyof Env];
+  }
+});
 
 /**
  * Check if queue mode is enabled (Redis available)
  */
 export function isQueueModeEnabled(): boolean {
-  return !!env.REDIS_URL;
+  return !!getEnv().REDIS_URL;
 }
