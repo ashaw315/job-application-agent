@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getJobPostingById } from '@/lib/jobs';
+import { RunPipelineButton } from './RunPipelineButton';
+import { FitScoreDisplay } from './FitScoreDisplay';
+import { ComputeScoreButton } from './ComputeScoreButton';
+import { SelectedBulletsDisplay } from './SelectedBulletsDisplay';
+import { CoverLetterDisplay } from './CoverLetterDisplay';
+import { ResumeVariantDisplay } from './ResumeVariantDisplay';
 
 interface JobDetailPageProps {
   params: {
@@ -66,6 +72,33 @@ export default async function JobDetailPage({
             {job.status}
           </span>
         </div>
+
+        {job.status === 'needs_attention' && (
+          <div
+            style={{
+              padding: '1rem',
+              marginBottom: '1.5rem',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '6px',
+            }}
+          >
+            <h3
+              style={{
+                margin: '0 0 0.5rem 0',
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#dc2626',
+              }}
+            >
+              ⚠️ Attention Required
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#7c2d12' }}>
+              This job requires manual review. Check the validation errors in the
+              Resume Variant section below.
+            </p>
+          </div>
+        )}
 
         <div
           style={{
@@ -134,6 +167,22 @@ export default async function JobDetailPage({
 
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+            Fit Score
+          </h2>
+          {job.fitScore ? (
+            <FitScoreDisplay fitScore={job.fitScore} />
+          ) : (
+            <ComputeScoreButton jobId={job.id} hasFitScore={false} />
+          )}
+          {job.fitScore && (
+            <div style={{ marginTop: '1rem' }}>
+              <ComputeScoreButton jobId={job.id} hasFitScore={true} />
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
             Job Source
           </h2>
           <div
@@ -163,6 +212,31 @@ export default async function JobDetailPage({
           </div>
         </div>
 
+        <div style={{ marginBottom: '2rem' }}>
+          <RunPipelineButton jobId={job.id} currentStatus={job.status} />
+        </div>
+
+        {job.materialPackets.length > 0 && job.materialPackets[0].metadata && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+              Selected KB Bullets (for Drafting)
+            </h2>
+            <SelectedBulletsDisplay metadata={job.materialPackets[0].metadata} />
+          </div>
+        )}
+
+        {job.materialPackets.length > 0 && job.materialPackets[0].versions.length > 0 && (
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+              Application Materials
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <CoverLetterDisplay versions={job.materialPackets[0].versions} />
+              <ResumeVariantDisplay versions={job.materialPackets[0].versions} />
+            </div>
+          </div>
+        )}
+
         <div
           style={{
             padding: '1rem',
@@ -187,6 +261,7 @@ export default async function JobDetailPage({
 function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
     new: '#10b981',
+    scored: '#3b82f6',
     needs_attention: '#f59e0b',
     in_review: '#3b82f6',
     applied: '#8b5cf6',

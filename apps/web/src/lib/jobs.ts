@@ -1,4 +1,11 @@
-import { PrismaClient, JobPosting, JobSource } from '@prisma/client';
+import {
+  PrismaClient,
+  JobPosting,
+  JobSource,
+  FitScore,
+  MaterialPacket,
+  MaterialVersion,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -15,10 +22,19 @@ export interface JobPostingListItem {
 }
 
 /**
+ * Material packet with versions
+ */
+export interface MaterialPacketWithVersions extends MaterialPacket {
+  versions: MaterialVersion[];
+}
+
+/**
  * Full job posting with relations
  */
 export interface JobPostingDetail extends JobPosting {
   jobSource: JobSource;
+  fitScore: FitScore | null;
+  materialPackets: MaterialPacketWithVersions[];
 }
 
 /**
@@ -54,6 +70,20 @@ export async function getJobPostingById(
     where: { id },
     include: {
       jobSource: true,
+      fitScore: true,
+      materialPackets: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 1, // Get the most recent material packet
+        include: {
+          versions: {
+            orderBy: {
+              version: 'desc',
+            },
+          },
+        },
+      },
     },
   });
 
