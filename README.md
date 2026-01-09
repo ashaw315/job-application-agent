@@ -15,9 +15,27 @@ Get up and running in under 5 minutes:
 - (Optional) **Redis** 6+ for queue mode
 - (Optional) **OpenAI API key** for LLM-powered drafting
 
+⚠️ **IMPORTANT: This project uses pnpm workspaces. `npm install` will fail.**
+
+If you don't have pnpm installed:
+```bash
+corepack enable
+corepack prepare pnpm@8.15.0 --activate
+```
+
 ### 2. Install Dependencies
 
 ```bash
+# From repo root
+pnpm install
+```
+
+**Clean reinstall** (if you have dependency issues):
+```bash
+# Remove all node_modules and lockfiles
+rm -rf node_modules apps/*/node_modules packages/*/node_modules pnpm-lock.yaml
+
+# Reinstall from scratch
 pnpm install
 ```
 
@@ -633,9 +651,9 @@ runner apply --job {jobId}
 
 ---
 
-## Deployment (v0 - Vercel + Supabase + Upstash)
+## Deploy to Vercel (Production)
 
-Deploy Job Application Agent to production using Vercel for hosting, Supabase for PostgreSQL, and optionally Upstash Redis for queue mode.
+This monorepo deploys to Vercel with Next.js auto-detection. Follow these steps for a successful production deployment.
 
 ### Prerequisites
 
@@ -658,17 +676,32 @@ Deploy Job Application Agent to production using Vercel for hosting, Supabase fo
    - Format: `postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true`
    - Save this as `DATABASE_URL`
 
-3. **Run migrations:**
+3. **Initialize database schema:**
+
+   Because PgBouncer connection pooling doesn't support migrations, you need to create tables manually:
+
    ```bash
-   # From your local machine, set DATABASE_URL to Supabase
-   export DATABASE_URL="your-supabase-connection-string"
+   # From repo root
    cd apps/web
-   pnpm db:migrate:deploy
+
+   # Generate SQL schema from Prisma
+   npx prisma migrate dev --name init --create-only
+
+   # This creates a migration file in prisma/migrations/
+   # Copy the SQL content and run it in Supabase SQL Editor
    ```
 
+   **Alternative:** Use the Supabase SQL Editor to run the schema from `prisma/migrations/` directly.
+
 4. **Seed initial data:**
+
+   After schema is created, seed from your local machine:
+
    ```bash
-   # Still in apps/web with DATABASE_URL set
+   # Set DATABASE_URL to Supabase (use direct connection, not pooler)
+   export DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+   cd apps/web
    pnpm db:seed
    ```
 
@@ -706,9 +739,20 @@ Deploy Job Application Agent to production using Vercel for hosting, Supabase fo
    - Go to [https://vercel.com/new](https://vercel.com/new)
    - Click "Import Project"
    - Select your GitHub repository
-   - Vercel will auto-detect Next.js (monorepo support included via vercel.json)
 
-3. **Configure environment variables in Vercel:**
+3. **Configure Vercel project settings:**
+
+   **IMPORTANT:** This is a monorepo. Set these in the Vercel UI during import:
+
+   - **Framework Preset:** Next.js (auto-detected)
+   - **Root Directory:** `apps/web` ⚠️ **Required for monorepo**
+   - **Build Command:** (leave as override OFF - uses vercel.json)
+   - **Install Command:** `pnpm install` (auto-detected)
+   - **Output Directory:** (leave as override OFF - uses .next)
+
+   The `vercel.json` in `apps/web/` handles the custom build command to compile the shared package first.
+
+4. **Configure environment variables in Vercel:**
 
    Go to Project Settings → Environment Variables and add:
 
@@ -723,12 +767,17 @@ Deploy Job Application Agent to production using Vercel for hosting, Supabase fo
    ```
    REDIS_URL=rediss://default:[PASSWORD]@[ENDPOINT].upstash.io:6379
    OPENAI_API_KEY=sk-...
-   NODE_ENV=production
    ```
 
-4. **Deploy:**
+   **Generate RUNNER_API_KEY:**
+   ```bash
+   openssl rand -hex 32
+   ```
+
+5. **Deploy:**
    - Click "Deploy"
    - Vercel will build and deploy (takes ~2-3 minutes)
+   - Build command runs: `pnpm --filter @job-application-agent/shared build && pnpm build`
    - On success, you'll get a URL like `https://your-app.vercel.app`
 
 ### Step 4: Verify Deployment
@@ -840,16 +889,51 @@ pnpm worker
 
 Before going live:
 
-- ✅ Health endpoint returns 200
-- ✅ Database migrations applied
-- ✅ Seed data loaded (user profile + KB bullets)
-- ✅ RUNNER_API_KEY is strong random string (32+ chars)
-- ✅ RUNNER_API_KEY matches between Vercel and local runner
-- ✅ Test job ingestion → pipeline → approval → runner flow
-- ✅ Check Vercel logs for errors: `vercel logs --follow`
-- ✅ (Queue mode only) Worker running and processing jobs
+- ✅ **Vercel Settings:**
+  - Root Directory = `apps/web`
+  - Framework Preset = Next.js (auto-detected)
+  - Build/Install/Output overrides = OFF (uses vercel.json)
+- ✅ **Database:**
+  - Supabase schema created (13 tables)
+  - Seed data loaded (user profile + KB bullets)
+- ✅ **Environment Variables:**
+  - `DATABASE_URL` set (with `?pgbouncer=true`)
+  - `RUNNER_API_KEY` is strong random string (32+ chars)
+  - `NEXT_PUBLIC_APP_URL` set to Vercel URL
+  - `RUNNER_API_KEY` matches between Vercel and local runner
+- ✅ **Deployment:**
+  - Build succeeds on Vercel
+  - Health endpoint returns 200
+  - Test job ingestion → pipeline → approval → runner flow
+  - Check Vercel logs for errors: `vercel logs --follow`
+- ✅ **(Queue mode only)** Worker running and processing jobs
 
 ### Troubleshooting Production
+
+**"No Next.js version detected" or "404 NOT_FOUND" on Vercel**
+
+This is usually a Root Directory misconfiguration:
+
+1. **Check Root Directory setting:**
+   - Go to Vercel Project Settings → General → Root Directory
+   - Must be set to: `apps/web`
+   - If blank or set to `.`, Vercel looks for Next.js at repo root (won't find it in monorepo)
+
+2. **Verify vercel.json exists in apps/web:**
+   ```bash
+   ls apps/web/vercel.json
+   # Should exist with buildCommand
+   ```
+
+3. **Check Framework Preset:**
+   - Go to Vercel Project Settings → General → Framework Preset
+   - Should say "Next.js" (auto-detected when Root Directory is correct)
+   - If it says "Other", Next.js routing won't work (404 errors)
+
+4. **Redeploy after fixing settings:**
+   - Go to Deployments tab
+   - Click "..." on latest deployment → Redeploy
+   - Or trigger new deployment: `git commit --allow-empty -m "redeploy" && git push`
 
 **"Database connection failed"**
 ```bash
@@ -858,6 +942,9 @@ psql "your-supabase-connection-string"
 
 # Check Vercel logs:
 vercel logs --follow
+
+# Verify DATABASE_URL includes ?pgbouncer=true
+# Verify you're using pooler URL (port 6543), not direct (port 5432)
 ```
 
 **"Worker not processing jobs"**
@@ -874,15 +961,16 @@ redis-cli -u "your-upstash-redis-url" ping
 - Ensure RUNNER_API_KEY is set in Vercel environment variables
 - Restart local runner after changing .env
 
-**"Migrations fail on Supabase"**
-```bash
-# Reset migrations and re-run:
-cd apps/web
-pnpm db:migrate:deploy --force-reset
+**"Build succeeds but pages return 500 errors"**
+- Check Vercel Function Logs for runtime errors
+- Verify all environment variables are set
+- Check database connection: `curl https://your-app.vercel.app/api/health`
+- Look for "prepared statement does not exist" → add `export const dynamic = 'force-dynamic'` to page
 
-# Or use Prisma Studio to manually fix:
-pnpm db:studio
-```
+**"Module not found: @job-application-agent/shared"**
+- Verify buildCommand in vercel.json builds shared package first
+- Check vercel.json exists in apps/web (not repo root)
+- Redeploy after fixing vercel.json
 
 ### Updating Production
 

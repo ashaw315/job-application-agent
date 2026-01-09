@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "test": "pnpm -r test",
     "test:runner": "pnpm --filter @job-application-agent/runner test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
+    "only-allow": "^1.2.1",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   },
