@@ -49,6 +49,9 @@ model JobPosting {
   description String
   status      String   @default("new") // "new" | "needs_attention" | "in_review" | "applied" | "rejected" | "archived"
 
+  sourceKey   String?  // ATS-specific job ID (e.g., greenhouse job ID)
+  applyUrl    String?  // Direct application URL
+
   jobSourceId String
   jobSource   JobSource @relation(fields: [jobSourceId], references: [id], onDelete: Cascade)
 

@@ -13,12 +13,27 @@ export const ManualJobIngestInputSchema = z.object({
 export type ManualJobIngestInput = z.infer<typeof ManualJobIngestInputSchema>;
 
 /**
- * Job ingest request payload
+ * Greenhouse job ingest input (just needs URL)
  */
-export const JobIngestRequestSchema = z.object({
-  sourceType: z.literal('manual'),
-  manual: ManualJobIngestInputSchema,
+export const GreenhouseJobIngestInputSchema = z.object({
+  url: z.string().url('Valid URL is required'),
 });
+
+export type GreenhouseJobIngestInput = z.infer<typeof GreenhouseJobIngestInputSchema>;
+
+/**
+ * Job ingest request payload (discriminated union)
+ */
+export const JobIngestRequestSchema = z.discriminatedUnion('sourceType', [
+  z.object({
+    sourceType: z.literal('manual'),
+    manual: ManualJobIngestInputSchema,
+  }),
+  z.object({
+    sourceType: z.literal('greenhouse'),
+    greenhouse: GreenhouseJobIngestInputSchema,
+  }),
+]);
 
 export type JobIngestRequest = z.infer<typeof JobIngestRequestSchema>;
 

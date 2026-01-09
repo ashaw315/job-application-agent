@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ManualJobIngestInputSchema,
+  GreenhouseJobIngestInputSchema,
   JobIngestRequestSchema,
   JobIngestResponseSchema,
   normalizeWhitespace,
@@ -109,6 +110,67 @@ describe('JobIngestRequestSchema', () => {
     };
 
     const result = JobIngestRequestSchema.safeParse(invalidRequest);
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts valid greenhouse ingest request', () => {
+    const validRequest = {
+      sourceType: 'greenhouse' as const,
+      greenhouse: {
+        url: 'https://boards.greenhouse.io/acmecorp/jobs/123456',
+      },
+    };
+
+    const result = JobIngestRequestSchema.safeParse(validRequest);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects greenhouse request with invalid URL', () => {
+    const invalidRequest = {
+      sourceType: 'greenhouse',
+      greenhouse: {
+        url: 'not-a-url',
+      },
+    };
+
+    const result = JobIngestRequestSchema.safeParse(invalidRequest);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects greenhouse request with missing url', () => {
+    const invalidRequest = {
+      sourceType: 'greenhouse',
+      greenhouse: {},
+    };
+
+    const result = JobIngestRequestSchema.safeParse(invalidRequest);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('GreenhouseJobIngestInputSchema', () => {
+  it('accepts valid greenhouse URL', () => {
+    const validInput = {
+      url: 'https://boards.greenhouse.io/company/jobs/123',
+    };
+
+    const result = GreenhouseJobIngestInputSchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid URL', () => {
+    const invalidInput = {
+      url: 'not-a-url',
+    };
+
+    const result = GreenhouseJobIngestInputSchema.safeParse(invalidInput);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing URL', () => {
+    const invalidInput = {};
+
+    const result = GreenhouseJobIngestInputSchema.safeParse(invalidInput);
     expect(result.success).toBe(false);
   });
 });

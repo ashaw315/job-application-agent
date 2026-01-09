@@ -9,9 +9,11 @@ export {
 
 export {
   ManualJobIngestInputSchema,
+  GreenhouseJobIngestInputSchema,
   JobIngestRequestSchema,
   JobIngestResponseSchema,
   type ManualJobIngestInput,
+  type GreenhouseJobIngestInput,
   type JobIngestRequest,
   type JobIngestResponse,
   normalizeWhitespace,
@@ -24,3 +26,9 @@ export {
   dedupeKeyForPosting,
   type DedupeKeyInput,
 } from './normalization';
+
+export {
+  extractGreenhouseJob,
+  htmlToTextClean,
+  type GreenhouseJobData,
+} from './greenhouse';

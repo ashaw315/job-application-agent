@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { POST } from './route';
 import { NextRequest } from 'next/server';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const prisma = new PrismaClient();
 
@@ -553,6 +555,178 @@ describe('POST /api/jobs/ingest', () => {
       const data2 = await response2.json();
 
       expect(data2.jobId).not.toBe(firstJobId);
+    });
+  });
+
+  describe('greenhouse ingestion', () => {
+    it('ingests greenhouse job from URL with mocked fetch', async () => {
+      // Read fixture HTML
+      const fixtureHtml = readFileSync(
+        join(process.cwd(), '../../packages/shared/test/fixtures/greenhouse/standard-job.html'),
+        'utf-8'
+      );
+
+      // Mock global fetch
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => fixtureHtml,
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'greenhouse',
+        greenhouse: {
+          url: 'https://boards.greenhouse.io/acmecorp/jobs/4567890',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.jobId).toBeDefined();
+
+      // Verify job was created with correct data
+      const job = await prisma.jobPosting.findUnique({
+        where: { id: data.jobId },
+        include: { jobSource: true },
+      });
+
+      expect(job).not.toBeNull();
+      expect(job?.title).toBe('Senior Software Engineer');
+      expect(job?.company).toBe('acmecorp');
+      expect(job?.location).toBe('San Francisco, CA');
+      expect(job?.status).toBe('new');
+      expect(job?.dedupeKey).toBe('greenhouse:4567890');
+      expect(job?.description).toContain('About the Role');
+      expect(job?.description).not.toContain('<h3>'); // Should be text, not HTML
+      expect(job?.jobSource?.url).toBe('https://boards.greenhouse.io/acmecorp/jobs/4567890');
+      expect(job?.jobSource?.atsType).toBe('greenhouse');
+
+      // Cleanup mock
+      vi.restoreAllMocks();
+    });
+
+    it('deduplicates greenhouse jobs by sourceKey (job ID)', async () => {
+      const fixtureHtml = readFileSync(
+        join(process.cwd(), '../../packages/shared/test/fixtures/greenhouse/standard-job.html'),
+        'utf-8'
+      );
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => fixtureHtml,
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'greenhouse',
+        greenhouse: {
+          url: 'https://boards.greenhouse.io/testcompany/jobs/9999999',
+        },
+      };
+
+      // First ingestion
+      const request1 = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response1 = await POST(request1);
+      const data1 = await response1.json();
+      const firstJobId = data1.jobId;
+
+      // Second ingestion with same greenhouse job ID
+      const request2 = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response2 = await POST(request2);
+      const data2 = await response2.json();
+
+      expect(data2.jobId).toBe(firstJobId);
+
+      // Verify only one job was created
+      const jobs = await prisma.jobPosting.findMany({
+        where: { dedupeKey: 'greenhouse:4567890' },
+      });
+
+      expect(jobs.length).toBeLessThanOrEqual(1);
+
+      vi.restoreAllMocks();
+    });
+
+    it('handles greenhouse fetch errors gracefully', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      const requestBody = {
+        sourceType: 'greenhouse',
+        greenhouse: {
+          url: 'https://boards.greenhouse.io/company/jobs/123',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBeDefined();
+
+      vi.restoreAllMocks();
+    });
+
+    it('handles invalid greenhouse HTML', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => '<html><body>Invalid content</body></html>',
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'greenhouse',
+        greenhouse: {
+          url: 'https://boards.greenhouse.io/company/jobs/123',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Failed to extract');
+
+      vi.restoreAllMocks();
     });
   });
 });

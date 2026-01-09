@@ -37,8 +37,8 @@ export function normalizeLocation(location: string | null | undefined): string {
 export interface DedupeKeyInput {
   sourceType: 'manual' | 'greenhouse' | 'generic';
   sourceKey?: string; // Job ID for greenhouse
-  companyName: string;
-  title: string;
+  companyName?: string;
+  title?: string;
   location?: string | null;
 }
 
@@ -58,6 +58,11 @@ export function dedupeKeyForPosting(input: DedupeKeyInput): string {
   }
 
   // For manual or greenhouse without sourceKey, use hash of normalized fields
+  // Validate required fields
+  if (!input.companyName || !input.title) {
+    throw new Error('companyName and title are required for non-greenhouse dedupe keys');
+  }
+
   const normalizedTitle = normalizeTitle(input.title);
   const normalizedLocation = normalizeLocation(input.location);
   const companyLower = input.companyName.toLowerCase().trim();
