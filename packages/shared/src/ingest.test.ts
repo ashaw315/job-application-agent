@@ -146,6 +146,53 @@ describe('JobIngestRequestSchema', () => {
     const result = JobIngestRequestSchema.safeParse(invalidRequest);
     expect(result.success).toBe(false);
   });
+
+  it('accepts valid generic_url ingest request', () => {
+    const validRequest = {
+      sourceType: 'generic_url' as const,
+      generic_url: {
+        url: 'https://company.com/careers/job-123',
+      },
+    };
+
+    const result = JobIngestRequestSchema.safeParse(validRequest);
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts generic_url request with optional companyName', () => {
+    const validRequest = {
+      sourceType: 'generic_url' as const,
+      generic_url: {
+        url: 'https://company.com/careers/job-123',
+        companyName: 'Acme Corp',
+      },
+    };
+
+    const result = JobIngestRequestSchema.safeParse(validRequest);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects generic_url request with invalid URL', () => {
+    const invalidRequest = {
+      sourceType: 'generic_url',
+      generic_url: {
+        url: 'not-a-url',
+      },
+    };
+
+    const result = JobIngestRequestSchema.safeParse(invalidRequest);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects generic_url request with missing url', () => {
+    const invalidRequest = {
+      sourceType: 'generic_url',
+      generic_url: {},
+    };
+
+    const result = JobIngestRequestSchema.safeParse(invalidRequest);
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('GreenhouseJobIngestInputSchema', () => {

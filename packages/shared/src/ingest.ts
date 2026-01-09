@@ -19,7 +19,23 @@ export const GreenhouseJobIngestInputSchema = z.object({
   url: z.string().url('Valid URL is required'),
 });
 
-export type GreenhouseJobIngestInput = z.infer<typeof GreenhouseJobIngestInputSchema>;
+export type GreenhouseJobIngestInput = z.infer<
+  typeof GreenhouseJobIngestInputSchema
+>;
+
+/**
+ * Generic URL job ingest input
+ * - url: required
+ * - companyName: optional override if extraction fails
+ */
+export const GenericUrlJobIngestInputSchema = z.object({
+  url: z.string().url('Valid URL is required'),
+  companyName: z.string().min(1).optional(),
+});
+
+export type GenericUrlJobIngestInput = z.infer<
+  typeof GenericUrlJobIngestInputSchema
+>;
 
 /**
  * Job ingest request payload (discriminated union)
@@ -32,6 +48,10 @@ export const JobIngestRequestSchema = z.discriminatedUnion('sourceType', [
   z.object({
     sourceType: z.literal('greenhouse'),
     greenhouse: GreenhouseJobIngestInputSchema,
+  }),
+  z.object({
+    sourceType: z.literal('generic_url'),
+    generic_url: GenericUrlJobIngestInputSchema,
   }),
 ]);
 

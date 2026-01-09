@@ -729,4 +729,279 @@ describe('POST /api/jobs/ingest', () => {
       vi.restoreAllMocks();
     });
   });
+
+  describe('generic_url ingestion', () => {
+    it('ingests generic URL job from URL with mocked fetch', async () => {
+      const fixtureHtml = readFileSync(
+        join(
+          process.cwd(),
+          '../../packages/shared/test/fixtures/generic/semantic-page.html'
+        ),
+        'utf-8'
+      );
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => fixtureHtml,
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'generic_url',
+        generic_url: {
+          url: 'https://techcorp.com/careers/full-stack-engineer',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.jobId).toBeDefined();
+
+      // Verify job was created in DB
+      const job = await prisma.jobPosting.findUnique({
+        where: { id: data.jobId },
+      });
+
+      expect(job).toBeDefined();
+      expect(job?.title).toBe('Full Stack Engineer - TechCorp');
+      expect(job?.company).toBe('TechCorp Careers');
+      expect(job?.location).toBe('Remote - USA');
+      expect(job?.description).toContain('Full Stack Engineer');
+      expect(job?.description).not.toContain('<h1>'); // Should be text, not HTML
+      expect(job?.applyUrl).toBe('https://techcorp.com/careers/apply/12345');
+      expect(job?.sourceKey).toBeNull(); // Generic URLs don't have sourceKey
+
+      // Verify dedupe key is a hash
+      expect(job?.dedupeKey).toMatch(/^[a-f0-9]{64}$/);
+
+      vi.restoreAllMocks();
+    });
+
+    it('ingests generic URL with user-provided companyName', async () => {
+      const fixtureHtml = readFileSync(
+        join(
+          process.cwd(),
+          '../../packages/shared/test/fixtures/generic/basic-page.html'
+        ),
+        'utf-8'
+      );
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => fixtureHtml,
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'generic_url',
+        generic_url: {
+          url: 'https://startupxyz.com/jobs/data-scientist',
+          companyName: 'StartupXYZ', // User provides company name
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+
+      // Verify job was created with user-provided company name
+      const job = await prisma.jobPosting.findUnique({
+        where: { id: data.jobId },
+      });
+
+      expect(job?.company).toBe('StartupXYZ'); // User-provided overrides extraction
+      expect(job?.title).toBe('Data Scientist at StartupXYZ');
+
+      vi.restoreAllMocks();
+    });
+
+    it('returns error when companyName cannot be extracted and not provided', async () => {
+      const htmlWithoutCompany = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Job Opening</title></head>
+        <body>
+          <main>
+            <h1>Software Engineer</h1>
+            <p>Great opportunity</p>
+          </main>
+        </body>
+        </html>
+      `;
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => htmlWithoutCompany,
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'generic_url',
+        generic_url: {
+          url: 'https://example.com/jobs/engineer',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Company name could not be extracted');
+      expect(data.error).toContain('provide it manually');
+
+      vi.restoreAllMocks();
+    });
+
+    it('deduplicates generic URL jobs by dedupeKey', async () => {
+      const fixtureHtml = readFileSync(
+        join(
+          process.cwd(),
+          '../../packages/shared/test/fixtures/generic/semantic-page.html'
+        ),
+        'utf-8'
+      );
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => fixtureHtml,
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'generic_url',
+        generic_url: {
+          url: 'https://techcorp.com/careers/full-stack-engineer',
+        },
+      };
+
+      // First ingestion
+      const request1 = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response1 = await POST(request1);
+      const data1 = await response1.json();
+      const firstJobId = data1.jobId;
+
+      // Second ingestion with same data (different URL)
+      const request2 = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceType: 'generic_url',
+          generic_url: {
+            url: 'https://techcorp.com/careers/different-url',
+          },
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response2 = await POST(request2);
+      const data2 = await response2.json();
+
+      // Should return same job ID (deduplication)
+      expect(data2.jobId).toBe(firstJobId);
+
+      // Verify only one job exists
+      const jobCount = await prisma.jobPosting.count({
+        where: {
+          company: 'TechCorp Careers',
+          title: 'Full Stack Engineer - TechCorp',
+        },
+      });
+      expect(jobCount).toBe(1);
+
+      vi.restoreAllMocks();
+    });
+
+    it('handles generic URL fetch errors gracefully', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+      const requestBody = {
+        sourceType: 'generic_url',
+        generic_url: {
+          url: 'https://example.com/jobs/engineer',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.error).toBeDefined();
+
+      vi.restoreAllMocks();
+    });
+
+    it('handles invalid generic URL HTML', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => '<html><body>No title or content</body></html>',
+      } as Response);
+
+      const requestBody = {
+        sourceType: 'generic_url',
+        generic_url: {
+          url: 'https://example.com/jobs/engineer',
+        },
+      };
+
+      const request = new NextRequest('http://localhost:3000/api/jobs/ingest', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.success).toBe(false);
+      expect(data.error).toContain('Could not extract');
+
+      vi.restoreAllMocks();
+    });
+  });
 });

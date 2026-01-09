@@ -10,10 +10,12 @@ export {
 export {
   ManualJobIngestInputSchema,
   GreenhouseJobIngestInputSchema,
+  GenericUrlJobIngestInputSchema,
   JobIngestRequestSchema,
   JobIngestResponseSchema,
   type ManualJobIngestInput,
   type GreenhouseJobIngestInput,
+  type GenericUrlJobIngestInput,
   type JobIngestRequest,
   type JobIngestResponse,
   normalizeWhitespace,
@@ -32,3 +34,5 @@ export {
   htmlToTextClean,
   type GreenhouseJobData,
 } from './greenhouse';
+
+export { extractGenericJob, type GenericJobData } from './generic';
