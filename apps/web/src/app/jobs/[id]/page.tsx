@@ -13,6 +13,8 @@ import { RunnerPacketPreview } from './RunnerPacketPreview';
 import { RunnerRunsDisplay } from './RunnerRunsDisplay';
 import { FollowUpDisplay } from './FollowUpDisplay';
 
+export const dynamic = 'force-dynamic';
+
 interface JobDetailPageProps {
   params: {
     id: string;

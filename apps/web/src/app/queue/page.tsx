@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getQueueJobs } from '@/lib/queue';
 import { QueueJobCard } from './QueueJobCard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function QueuePage(): Promise<JSX.Element> {
   const jobs = await getQueueJobs();
 

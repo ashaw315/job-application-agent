@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { getJobPostings } from '@/lib/jobs';
 
+export const dynamic = 'force-dynamic';
+
 export default async function JobsPage(): Promise<JSX.Element> {
   const jobs = await getJobPostings();
 
