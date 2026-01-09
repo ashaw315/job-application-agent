@@ -28,6 +28,13 @@ export const RunnerConfigSchema = z.object({
     .transform((val) => val === 'true' || val === '1')
     .pipe(z.boolean())
     .default('true'),
+
+  /** Whether to post results back to the app after completion */
+  RUNNER_POST_RESULTS: z
+    .string()
+    .transform((val) => val === 'true' || val === '1')
+    .pipe(z.boolean())
+    .default('false'),
 });
 
 export type RunnerConfig = z.infer<typeof RunnerConfigSchema>;

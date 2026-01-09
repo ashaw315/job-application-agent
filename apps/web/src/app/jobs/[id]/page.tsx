@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getJobPostingById } from '@/lib/jobs';
+import { getRunnerRunsForJob } from '@/lib/runnerRuns';
 import { RunPipelineButton } from './RunPipelineButton';
 import { FitScoreDisplay } from './FitScoreDisplay';
 import { ComputeScoreButton } from './ComputeScoreButton';
@@ -8,6 +9,7 @@ import { SelectedBulletsDisplay } from './SelectedBulletsDisplay';
 import { CoverLetterDisplay } from './CoverLetterDisplay';
 import { ResumeVariantDisplay } from './ResumeVariantDisplay';
 import { RunnerPacketPreview } from './RunnerPacketPreview';
+import { RunnerRunsDisplay } from './RunnerRunsDisplay';
 
 interface JobDetailPageProps {
   params: {
@@ -23,6 +25,9 @@ export default async function JobDetailPage({
   if (!job) {
     notFound();
   }
+
+  // Fetch runner runs for this job
+  const runnerRuns = await getRunnerRunsForJob(params.id);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -262,6 +267,13 @@ export default async function JobDetailPage({
         )}
 
         <RunnerPacketPreview jobId={job.id} jobStatus={job.status} />
+
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+            Automation History
+          </h2>
+          <RunnerRunsDisplay runs={runnerRuns} />
+        </div>
 
         <div
           style={{

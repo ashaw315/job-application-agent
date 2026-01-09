@@ -148,6 +148,7 @@ describe('Runner Integration Tests', () => {
     RUNNER_API_KEY: 'test-api-key',
     RUNNER_ARTIFACT_DIR: TEST_ARTIFACT_DIR,
     RUNNER_HEADLESS: true,
+    RUNNER_POST_RESULTS: false, // Don't post in tests
   };
 
   it('should fill complete form, upload files, answer work auth, and stop before submit', async () => {

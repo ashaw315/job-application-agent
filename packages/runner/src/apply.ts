@@ -47,6 +47,55 @@ async function fetchPacket(
 }
 
 /**
+ * Post runner report back to the web app API
+ */
+async function postReport(
+  report: RunnerReport,
+  config: RunnerConfig
+): Promise<void> {
+  const url = `${config.RUNNER_APP_BASE_URL}/api/runner/runs`;
+
+  console.log(`📤 Posting report to ${url}`);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.RUNNER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(report),
+    });
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      throw new Error(
+        `Failed to post report: ${response.status} ${response.statusText}${
+          data.error ? ` - ${data.error}` : ''
+        }`
+      );
+    }
+
+    const data = (await response.json()) as {
+      success: boolean;
+      runId?: string;
+      newStatus?: string;
+    };
+
+    if (!data.success) {
+      throw new Error('Invalid response from API when posting report');
+    }
+
+    console.log(`✅ Report posted successfully (runId: ${data.runId}, newStatus: ${data.newStatus})`);
+  } catch (error) {
+    console.error(`❌ Failed to post report:`, error);
+    throw error;
+  }
+}
+
+/**
  * Ensure artifact directory exists
  */
 async function ensureArtifactDir(config: RunnerConfig): Promise<void> {
@@ -494,6 +543,16 @@ export async function applyToJob(
     // Cleanup temp files
     if (resumePath && coverLetterPath) {
       await cleanupTempFiles(resumePath, coverLetterPath);
+    }
+  }
+
+  // Post report back to app if enabled
+  if (config.RUNNER_POST_RESULTS) {
+    try {
+      await postReport(report, config);
+    } catch (error) {
+      console.error(`⚠️  Failed to post report to app (continuing anyway):`, error);
+      // Don't fail the entire run if posting fails
     }
   }
 

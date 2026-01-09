@@ -181,6 +181,7 @@ model StatusEvent {
 
   fromStatus    String?
   toStatus      String
+  actor         String?  // "user" | "runner" | "system"
   notes         String?
 
   createdAt     DateTime @default(now())
@@ -230,8 +231,11 @@ model RunnerRun {
   jobPostingId  String
   jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
-  status        String   // "running" | "success" | "failed" | "stopped"
-  errorMessage  String?
+  status        String   // "success" | "stopped_before_submit" | "failed" | "critical_error"
+  errors        String   @default("[]") // JSON array of error messages
+  warnings      String   @default("[]") // JSON array of warning messages
+  stoppedReason String?
+  appliedAt     DateTime?
 
   startedAt     DateTime @default(now())
   completedAt   DateTime?
@@ -255,7 +259,7 @@ model RunnerArtifact {
   artifactType  String   // "screenshot" | "html" | "pdf" | "json"
   filePath      String?
   content       String?
-  metadata      String? // JSON stored as string
+  description   String?
 
   createdAt     DateTime @default(now())
 
