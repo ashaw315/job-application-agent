@@ -1,0 +1,251 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Singleton user profile
+model UserProfile {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_profiles")
+}
+
+// Job source metadata (URL, ATS type, etc)
+model JobSource {
+  id         String   @id @default(uuid())
+  url        String
+  atsType    String // "greenhouse" | "lever" | "generic"
+  scrapedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  jobPostings JobPosting[]
+
+  @@index([url])
+  @@map("job_sources")
+}
+
+// Main job posting entity
+model JobPosting {
+  id          String   @id @default(uuid())
+  dedupeKey   String   @unique // For deduplication
+  title       String
+  company     String
+  location    String?
+  salaryMin   Int?
+  salaryMax   Int?
+  description String
+  status      String   @default("new") // "new" | "needs_attention" | "in_review" | "applied" | "rejected" | "archived"
+
+  jobSourceId String
+  jobSource   JobSource @relation(fields: [jobSourceId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  fitScore              FitScore?
+  materialPackets       MaterialPacket[]
+  statusEvents          StatusEvent[]
+  followUpSuggestions   FollowUpSuggestion[]
+  runnerRuns            RunnerRun[]
+
+  @@index([status])
+  @@index([company])
+  @@index([createdAt])
+  @@map("job_postings")
+}
+
+// 1:1 fit score for each job posting
+model FitScore {
+  id            String   @id @default(uuid())
+  jobPostingId  String   @unique
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  score         Float // 0-100
+  reasoning     String
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("fit_scores")
+}
+
+// Resume knowledge base bullets
+model KbBullet {
+  id        String   @id @default(uuid())
+  text      String
+  tags      String // JSON array stored as string
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("kb_bullets")
+}
+
+// Optional: Resume knowledge base projects
+model KbProject {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  technologies String // JSON array stored as string
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("kb_projects")
+}
+
+// Optional: STAR stories for behavioral questions
+model KbStarStory {
+  id          String   @id @default(uuid())
+  title       String
+  situation   String
+  task        String
+  action      String
+  result      String
+  tags        String // JSON array stored as string
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("kb_star_stories")
+}
+
+// Generated application materials packet
+model MaterialPacket {
+  id                String   @id @default(uuid())
+  jobPostingId      String
+  jobPosting        JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  resumeVariantText String
+  coverLetterText   String?
+  customAnswers     String? // JSON stored as string
+
+  generatedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  versions          MaterialVersion[]
+
+  @@index([jobPostingId])
+  @@map("material_packets")
+}
+
+// Version history for material packets
+model MaterialVersion {
+  id                String   @id @default(uuid())
+  materialPacketId  String
+  materialPacket    MaterialPacket @relation(fields: [materialPacketId], references: [id], onDelete: Cascade)
+
+  version           Int
+  content           String // JSON stored as string
+
+  createdAt         DateTime @default(now())
+
+  @@unique([materialPacketId, version])
+  @@index([materialPacketId])
+  @@map("material_versions")
+}
+
+// Status change events for job postings
+model StatusEvent {
+  id            String   @id @default(uuid())
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  fromStatus    String?
+  toStatus      String
+  notes         String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([jobPostingId])
+  @@index([createdAt])
+  @@map("status_events")
+}
+
+// Follow-up suggestions
+model FollowUpSuggestion {
+  id            String   @id @default(uuid())
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  text          String
+  suggestedAt   DateTime @default(now())
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  emailDrafts   FollowUpEmailDraft[]
+
+  @@index([jobPostingId])
+  @@map("follow_up_suggestions")
+}
+
+// Follow-up email drafts
+model FollowUpEmailDraft {
+  id                    String   @id @default(uuid())
+  followUpSuggestionId  String
+  followUpSuggestion    FollowUpSuggestion @relation(fields: [followUpSuggestionId], references: [id], onDelete: Cascade)
+
+  subject               String
+  body                  String
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([followUpSuggestionId])
+  @@map("follow_up_email_drafts")
+}
+
+// Runner automation execution records
+model RunnerRun {
+  id            String   @id @default(uuid())
+  jobPostingId  String
+  jobPosting    JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  status        String   // "running" | "success" | "failed" | "stopped"
+  errorMessage  String?
+
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  artifacts     RunnerArtifact[]
+
+  @@index([jobPostingId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("runner_runs")
+}
+
+// Artifacts produced by runner (screenshots, HTML, etc)
+model RunnerArtifact {
+  id            String   @id @default(uuid())
+  runnerRunId   String
+  runnerRun     RunnerRun @relation(fields: [runnerRunId], references: [id], onDelete: Cascade)
+
+  artifactType  String   // "screenshot" | "html" | "pdf" | "json"
+  filePath      String?
+  content       String?
+  metadata      String? // JSON stored as string
+
+  createdAt     DateTime @default(now())
+
+  @@index([runnerRunId])
+  @@index([artifactType])
+  @@map("runner_artifacts")
+}

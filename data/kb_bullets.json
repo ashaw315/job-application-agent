@@ -1,0 +1,14 @@
+[
+  {
+    "text": "Led development of microservices architecture handling 50K+ requests/day, reducing API response time by 40% through Redis caching and database query optimization",
+    "tags": ["backend", "performance", "architecture", "redis", "optimization"]
+  },
+  {
+    "text": "Built and deployed React-based dashboard with real-time analytics, improving user engagement by 65% and reducing customer support tickets by 30%",
+    "tags": ["frontend", "react", "analytics", "ui/ux", "impact"]
+  },
+  {
+    "text": "Implemented CI/CD pipeline using GitHub Actions and Docker, reducing deployment time from 2 hours to 15 minutes and achieving 99.9% uptime",
+    "tags": ["devops", "ci/cd", "docker", "automation", "reliability"]
+  }
+]
