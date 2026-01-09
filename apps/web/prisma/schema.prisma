@@ -158,12 +158,18 @@ model MaterialVersion {
   type              String   // "cover_letter" | "resume_variant"
   content           String   // JSON stored as string
 
+  // Optional reference to the version this edit is based on (for edited versions)
+  diffBaseVersionId String?
+  diffBaseVersion   MaterialVersion? @relation("EditBase", fields: [diffBaseVersionId], references: [id], onDelete: SetNull)
+  edits             MaterialVersion[] @relation("EditBase")
+
   createdAt         DateTime @default(now())
 
   @@unique([materialPacketId, version])
   @@index([materialPacketId])
   @@index([stage])
   @@index([type])
+  @@index([diffBaseVersionId])
   @@map("material_versions")
 }
 

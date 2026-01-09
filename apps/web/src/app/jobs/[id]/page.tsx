@@ -231,8 +231,14 @@ export default async function JobDetailPage({
               Application Materials
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <CoverLetterDisplay versions={job.materialPackets[0].versions} />
-              <ResumeVariantDisplay versions={job.materialPackets[0].versions} />
+              <CoverLetterDisplay
+                materialPacketId={job.materialPackets[0].id}
+                versions={job.materialPackets[0].versions}
+              />
+              <ResumeVariantDisplay
+                materialPacketId={job.materialPackets[0].id}
+                versions={job.materialPackets[0].versions}
+              />
             </div>
           </div>
         )}
