@@ -6,8 +6,12 @@ import {
 } from '@job-application-agent/shared';
 import { generateCoverLetter, generateResumeVariant } from '@/lib/draft/service';
 import { OpenAiClient } from '@/lib/llm';
+import { isQueueModeEnabled } from '@/lib/env';
+import { POST_QUEUE } from './route-queue';
+import { createLogger } from '@/lib/logger';
 
 const prisma = new PrismaClient();
+const logger = createLogger({ component: 'runPipeline' });
 
 interface RouteParams {
   params: {
@@ -18,13 +22,22 @@ interface RouteParams {
 /**
  * POST /api/jobs/:id/runPipeline
  * Run the full pipeline for a job: score (if needed) -> draft materials -> set status to in_review
+ * Uses queue mode if REDIS_URL is configured, otherwise runs inline
  */
 export async function POST(
-  _request: NextRequest,
-  { params }: RouteParams
+  request: NextRequest,
+  params: RouteParams
 ): Promise<NextResponse> {
+  // Check if queue mode is enabled
+  if (isQueueModeEnabled()) {
+    logger.info({ jobId: params.params.id }, 'Using queue mode');
+    return POST_QUEUE(request, params);
+  }
+
+  logger.info({ jobId: params.params.id }, 'Using inline mode');
+
   try {
-    const jobId = params.id;
+    const jobId = params.params.id;
 
     // Validate job exists
     const job = await prisma.jobPosting.findUnique({

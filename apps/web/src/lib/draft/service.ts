@@ -5,6 +5,8 @@ import {
   buildCoverLetterSystemPrompt,
   buildResumeVariantPrompt,
   buildResumeVariantSystemPrompt,
+  buildFollowUpEmailPrompt,
+  buildFollowUpEmailSystemPrompt,
   BulletForPrompt,
 } from './prompts';
 import {
@@ -397,6 +399,192 @@ export async function generateResumeVariant(
       success: false,
       error:
         error instanceof Error ? error.message : 'Failed to generate resume variant',
+    };
+  }
+}
+
+export interface GenerateFollowUpEmailInput {
+  jobPostingId: string;
+  materialPacketId: string;
+  suggestionId: string;
+  llmClient: LlmClient;
+  prisma: PrismaClient;
+}
+
+export interface GenerateFollowUpEmailOutput {
+  success: boolean;
+  draftId?: string;
+  subject?: string;
+  body?: string;
+  error?: string;
+}
+
+/**
+ * Generate a follow-up email for a job posting using LLM
+ */
+export async function generateFollowUpEmail(
+  input: GenerateFollowUpEmailInput
+): Promise<GenerateFollowUpEmailOutput> {
+  const { jobPostingId, materialPacketId, suggestionId, llmClient, prisma } =
+    input;
+
+  try {
+    // Load job posting
+    const job = await prisma.jobPosting.findUnique({
+      where: { id: jobPostingId },
+    });
+
+    if (!job) {
+      return {
+        success: false,
+        error: 'Job posting not found',
+      };
+    }
+
+    // Load suggestion
+    const suggestion = await prisma.followUpSuggestion.findUnique({
+      where: { id: suggestionId },
+    });
+
+    if (!suggestion) {
+      return {
+        success: false,
+        error: 'Suggestion not found',
+      };
+    }
+
+    // Check if draft already exists (idempotency)
+    const existingDraft = await prisma.followUpEmailDraft.findFirst({
+      where: { followUpSuggestionId: suggestionId },
+    });
+
+    if (existingDraft) {
+      return {
+        success: true,
+        draftId: existingDraft.id,
+        subject: existingDraft.subject,
+        body: existingDraft.body,
+      };
+    }
+
+    // Load user profile
+    const userProfile = await prisma.userProfile.findFirst();
+
+    if (!userProfile) {
+      return {
+        success: false,
+        error: 'User profile not found',
+      };
+    }
+
+    // Calculate days after application
+    const now = new Date();
+    const appliedDate = job.createdAt;
+    const daysAfterApplication = Math.floor(
+      (now.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Build prompt
+    const prompt = buildFollowUpEmailPrompt({
+      job: {
+        title: job.title,
+        company: job.company,
+        description: job.description,
+        location: job.location,
+      },
+      userProfile: {
+        name: userProfile.name,
+        email: userProfile.email,
+        phone: userProfile.phone,
+      },
+      suggestionText: suggestion.text,
+      daysAfterApplication,
+    });
+
+    const systemPrompt = buildFollowUpEmailSystemPrompt();
+
+    // Generate follow-up email using LLM
+    const llmResult = await llmClient.generateText({
+      task: 'followup_email',
+      prompt,
+      systemPrompt,
+      maxTokens: 500,
+      temperature: 0.7,
+    });
+
+    // Parse subject and body from LLM output
+    const emailText = llmResult.text.trim();
+    let subject = '';
+    let body = '';
+
+    const subjectMatch = emailText.match(/^Subject:\s*(.+?)(?:\n|$)/i);
+    if (subjectMatch) {
+      subject = subjectMatch[1].trim();
+      body = emailText.substring(subjectMatch[0].length).trim();
+    } else {
+      // Fallback if no subject line found
+      const lines = emailText.split('\n');
+      subject = `Following up on ${job.title} Application`;
+      body = lines.join('\n').trim();
+    }
+
+    // Get next version number
+    const existingVersions = await prisma.materialVersion.findMany({
+      where: {
+        materialPacketId,
+        type: 'followup_email',
+      },
+      orderBy: {
+        version: 'desc',
+      },
+      take: 1,
+    });
+
+    const nextVersion =
+      existingVersions.length > 0 ? existingVersions[0].version + 1 : 1;
+
+    // Save MaterialVersion
+    await prisma.materialVersion.create({
+      data: {
+        materialPacketId,
+        version: nextVersion,
+        stage: 'generated',
+        type: 'followup_email',
+        content: JSON.stringify({
+          subject,
+          body,
+          llmUsage: llmResult.usage,
+          model: llmResult.model,
+          generatedAt: new Date().toISOString(),
+          suggestionId,
+          daysAfterApplication,
+        }),
+      },
+    });
+
+    // Create FollowUpEmailDraft
+    const draft = await prisma.followUpEmailDraft.create({
+      data: {
+        followUpSuggestionId: suggestionId,
+        subject,
+        body,
+      },
+    });
+
+    return {
+      success: true,
+      draftId: draft.id,
+      subject: draft.subject,
+      body: draft.body,
+    };
+  } catch (error) {
+    console.error('Error generating follow-up email:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate follow-up email',
     };
   }
 }

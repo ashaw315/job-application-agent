@@ -134,3 +134,55 @@ Generate the rewritten bullets now:`;
 export function buildResumeVariantSystemPrompt(): string {
   return `You are a professional resume writer who specializes in tailoring resumes for specific jobs. You MUST follow strict guardrails: never change numbers, never add new technologies not in the original text, never add scope escalation words like "led" or "owned" unless present in original. Your job is light rewriting only to improve relevance.`;
 }
+
+export interface FollowUpEmailPromptInput {
+  job: JobForPrompt;
+  userProfile: UserProfileForPrompt;
+  suggestionText: string;
+  daysAfterApplication: number;
+}
+
+/**
+ * Build a follow-up email generation prompt
+ */
+export function buildFollowUpEmailPrompt(
+  input: FollowUpEmailPromptInput
+): string {
+  const { job, userProfile, suggestionText, daysAfterApplication } = input;
+
+  return `You are writing a professional follow-up email for ${userProfile.name}.
+
+Job Details:
+- Title: ${job.title}
+- Company: ${job.company}
+- Description: ${job.description}
+
+Context:
+- The candidate applied ${daysAfterApplication} days ago
+- Purpose: ${suggestionText}
+
+Instructions:
+1. Write a concise, professional follow-up email
+2. Express continued interest in the role
+3. Keep it brief (2-3 short paragraphs maximum)
+4. Be polite and respectful of their time
+5. Do not be pushy or demanding
+6. Show enthusiasm without being desperate
+
+Output format:
+Return the email in the following format:
+Subject: [your subject line]
+
+[email body]
+
+Sign it with "${userProfile.name}"
+
+Generate the follow-up email now:`;
+}
+
+/**
+ * Build system prompt for follow-up email generation
+ */
+export function buildFollowUpEmailSystemPrompt(): string {
+  return `You are a professional career advisor helping job seekers write effective follow-up emails. Your emails should be professional, concise, and demonstrate continued interest without being pushy.`;
+}

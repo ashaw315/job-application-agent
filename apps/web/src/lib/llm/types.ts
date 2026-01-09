@@ -1,7 +1,7 @@
 /**
  * LLM task types for application material generation
  */
-export type LlmTask = 'cover_letter' | 'resume_variant';
+export type LlmTask = 'cover_letter' | 'resume_variant' | 'followup_email';
 
 /**
  * Input for LLM text generation

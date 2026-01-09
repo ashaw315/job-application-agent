@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getJobPostingById } from '@/lib/jobs';
 import { getRunnerRunsForJob } from '@/lib/runnerRuns';
+import { getFollowUpSuggestionsForJob } from '@/lib/followUp';
 import { RunPipelineButton } from './RunPipelineButton';
 import { FitScoreDisplay } from './FitScoreDisplay';
 import { ComputeScoreButton } from './ComputeScoreButton';
@@ -10,6 +11,7 @@ import { CoverLetterDisplay } from './CoverLetterDisplay';
 import { ResumeVariantDisplay } from './ResumeVariantDisplay';
 import { RunnerPacketPreview } from './RunnerPacketPreview';
 import { RunnerRunsDisplay } from './RunnerRunsDisplay';
+import { FollowUpDisplay } from './FollowUpDisplay';
 
 interface JobDetailPageProps {
   params: {
@@ -28,6 +30,9 @@ export default async function JobDetailPage({
 
   // Fetch runner runs for this job
   const runnerRuns = await getRunnerRunsForJob(params.id);
+
+  // Fetch follow-up suggestions for this job
+  const followUpSuggestions = await getFollowUpSuggestionsForJob(params.id);
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -273,6 +278,13 @@ export default async function JobDetailPage({
             Automation History
           </h2>
           <RunnerRunsDisplay runs={runnerRuns} />
+        </div>
+
+        <div style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+            Follow-Up Communications
+          </h2>
+          <FollowUpDisplay jobId={job.id} suggestions={followUpSuggestions} />
         </div>
 
         <div
