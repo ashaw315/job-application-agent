@@ -1,8 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @job-application-agent/shared build && cd apps/web && npx prisma generate && pnpm build",
+  "buildCommand": "pnpm --filter @job-application-agent/shared build && cd apps/web && npx prisma generate && npx next build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install",
-  "framework": null,
-  "devCommand": "cd apps/web && pnpm dev"
+  "installCommand": "pnpm install"
 }
