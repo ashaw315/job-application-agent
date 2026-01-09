@@ -1,9 +1,17 @@
 export {
   JobPostingIdSchema,
+  UserProfileSchema,
+  MaterialsSchema,
+  AllowedAnswersSchema,
   RunnerPacketSchema,
+  RunnerArtifactSchema,
   RunnerReportSchema,
   type JobPostingId,
+  type UserProfile,
+  type Materials,
+  type AllowedAnswers,
   type RunnerPacket,
+  type RunnerArtifact,
   type RunnerReport,
 } from './schemas';
 
@@ -66,3 +74,5 @@ export {
   type ValidationResult,
   type ValidateResumeVariantInput,
 } from './validation';
+
+export { computeWordDiff, type DiffResult } from './diff';

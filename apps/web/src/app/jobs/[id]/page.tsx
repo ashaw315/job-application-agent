@@ -7,6 +7,7 @@ import { ComputeScoreButton } from './ComputeScoreButton';
 import { SelectedBulletsDisplay } from './SelectedBulletsDisplay';
 import { CoverLetterDisplay } from './CoverLetterDisplay';
 import { ResumeVariantDisplay } from './ResumeVariantDisplay';
+import { RunnerPacketPreview } from './RunnerPacketPreview';
 
 interface JobDetailPageProps {
   params: {
@@ -227,9 +228,26 @@ export default async function JobDetailPage({
 
         {job.materialPackets.length > 0 && job.materialPackets[0].versions.length > 0 && (
           <div style={{ marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
-              Application Materials
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>
+                Application Materials
+              </h2>
+              {job.status === 'approved' && (
+                <span
+                  style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: '500',
+                    backgroundColor: '#d1fae5',
+                    color: '#065f46',
+                    border: '1px solid #6ee7b7',
+                  }}
+                >
+                  ✓ Approved
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <CoverLetterDisplay
                 materialPacketId={job.materialPackets[0].id}
@@ -242,6 +260,8 @@ export default async function JobDetailPage({
             </div>
           </div>
         )}
+
+        <RunnerPacketPreview jobId={job.id} jobStatus={job.status} />
 
         <div
           style={{

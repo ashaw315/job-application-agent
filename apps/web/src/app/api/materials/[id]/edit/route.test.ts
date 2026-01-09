@@ -6,9 +6,11 @@ import { NextRequest } from 'next/server';
 const prisma = new PrismaClient();
 
 afterAll(async () => {
-  // Clean up test database
+  // Clean up test database - order matters due to foreign keys
   await prisma.materialVersion.deleteMany();
   await prisma.materialPacket.deleteMany();
+  await prisma.statusEvent.deleteMany();
+  await prisma.fitScore.deleteMany();
   await prisma.jobPosting.deleteMany();
   await prisma.jobSource.deleteMany();
   await prisma.$disconnect();

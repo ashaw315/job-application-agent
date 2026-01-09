@@ -1,4 +1,5 @@
 // Runner package - Playwright CLI automation
-// Will be implemented in future steps
 
-export const placeholder = 'runner package';
+export { applyToJob } from './apply.js';
+export { loadConfig, type RunnerConfig } from './config.js';
+export type { RunnerPacket, RunnerReport } from '@job-application-agent/shared';

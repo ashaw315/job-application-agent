@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test": "pnpm -r test",
+    "test:runner": "pnpm --filter @job-application-agent/runner test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },

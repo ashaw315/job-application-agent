@@ -149,6 +149,20 @@ export function CoverLetterDisplay({
               Edited
             </span>
           )}
+          {coverLetterVersion.stage === 'approved' && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: '#065f46',
+                padding: '0.25rem 0.5rem',
+                backgroundColor: '#d1fae5',
+                borderRadius: '4px',
+                border: '1px solid #6ee7b7',
+              }}
+            >
+              ✓ Approved
+            </span>
+          )}
           {!isEditing && !isPlaceholder && (
             <button
               onClick={handleEdit}
